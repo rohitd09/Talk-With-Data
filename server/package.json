@@ -1,0 +1,30 @@
+{
+  "name": "codex-server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "node server.js",
+    "server": "nodemon server"
+  },
+  "dependencies": {
+    "@langchain/community": "^0.3.17",
+    "@langchain/core": "^0.3.22",
+    "@langchain/langgraph": "^0.2.26",
+    "@langchain/openai": "^0.3.14",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.1",
+    "fs": "^0.0.1-security",
+    "langchain": "^0.3.6",
+    "nodemon": "^2.0.20",
+    "openai": "^4.75.0",
+    "path": "^0.12.7",
+    "pdf-parse": "^1.1.1",
+    "uuid": "^11.0.3"
+  },
+  "devDependencies": {
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1"
+  }
+}

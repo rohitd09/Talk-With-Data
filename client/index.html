@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Talk With Data</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Upload Section -->
+      <div id="upload_container">
+        <input type="file" id="file_input" />
+        <label for="file_input">Upload a Document</label>
+      </div>
+
+      <!-- Workspace Section -->
+      <div id="workspace">
+        <!-- Document Viewer -->
+        <div id="document_container">
+          <div id="document_view">
+            <p>Upload a document to view its content here.</p>
+          </div>
+        </div>
+
+        <!-- Chat Section -->
+        <div id="chat_container">
+          <!-- Chat Messages -->
+          <div id="chat_messages"></div>
+
+          <!-- Chat Form -->
+          <form id="chat_form">
+            <textarea
+              name="prompt"
+              rows="1"
+              cols="1"
+              placeholder="Ask about the document..."
+              required
+            ></textarea>
+            <button type="submit">
+              <img src="assets/send.svg" alt="send" />
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+  </body>
+</html>

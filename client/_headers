@@ -1,0 +1,7 @@
+# Correct MIME type for favicon
+/assets/favicon.ico
+  Content-Type: image/x-icon
+
+# Correct MIME type for SVG files
+/assets/*.svg
+  Content-Type: image/svg+xml
