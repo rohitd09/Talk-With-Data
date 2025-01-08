@@ -1,4 +1,4 @@
-# Document Chat App
+# Talk With Data
 
 This is a **Node.js application** that enables users to upload a document and interact with it conversationally to extract relevant information. The app consists of a **server** and a **client**. The server processes the uploaded document, while the client provides an interactive user interface for document interaction.
 
