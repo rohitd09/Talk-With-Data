@@ -14,10 +14,11 @@ import { DirectoryLoader } from 'langchain/document_loaders/fs/directory';
 import { TextLoader } from 'langchain/document_loaders/fs/text';
 import { MemorySaver } from '@langchain/langgraph';
 import { HumanMessage } from '@langchain/core/messages';
+import { log } from 'console';
 
-// Set up __dirname for ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// // Set up __dirname for ES Modules
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 
 // Configure environment variables
 dotenv.config();
@@ -27,53 +28,60 @@ app.use(cors());
 app.use(express.json());
 
 // Directory Paths
-const DATA_DIR = path.join(__dirname, 'data');
+const DATA_DIR = path.join(process.env.STORAGE_PATH, 'data');
 
-// Initialize LLM and Vector Store
+// Initialize Variables
 let vectorStore;
 let retriever;
 let agentExecutor;
-let memory = new MemorySaver();
+const memory = new MemorySaver(); // Persistent memory
 
 async function initializeLLM() {
   try {
-    console.log('Re-initializing the LLM with the latest documents...');
+    console.log('Initializing LLM with current documents...');
+
+    // Ensure the data directory exists
+    await fs.mkdir(DATA_DIR, { recursive: true });
+
+    // Load documents
     const loader = new DirectoryLoader(DATA_DIR, {
       '.txt': (filePath) => new TextLoader(filePath),
     });
-
     const docs = await loader.load();
 
-    // Reinitialize the vector store
+    if (docs.length === 0) {
+      console.warn('No documents found in the data directory. Skipping initialization.');
+      return;
+    }
+
+    console.log('Loaded documents:', docs.map((doc) => doc.metadata.source));
+
+    // Create embeddings and retriever
     vectorStore = await MemoryVectorStore.fromDocuments(docs, new OpenAIEmbeddings());
     retriever = vectorStore.asRetriever();
 
-    // Add the retriever tool dynamically
+    // Create retriever tool
     const retrieverTool = createRetrieverTool(retriever, {
       name: 'talk_with_data',
-      description: `You are a patient recounting a conversation you had with your doctor to a third person who is asking questions about it. 
-                    The conversation may include details about symptoms, diagnoses, treatments, and advice provided by the doctor. 
-                    Respond in a natural and concise manner, as if you are recalling the events from memory, 
-                    while maintaining accuracy about what was discussed. Avoid making assumptions beyond the content of the conversation.`,
+      description: `You are a virtual assistant who recalls conversations stored in the uploaded document. 
+                    Provide concise and accurate answers based on the document's content.`,
     });
 
-    const tools = [retrieverTool];
-
-    // Reinitialize the agent executor
+    // Initialize LLM and tools
     const llm = new ChatOpenAI({ model: 'gpt-4o', temperature: 0 });
     agentExecutor = createReactAgent({
       llm: llm,
-      tools: tools,
+      tools: [retrieverTool],
       checkpointSaver: memory,
     });
 
-    console.log('LLM successfully re-initialized.');
+    console.log('LLM and tools initialized successfully.');
   } catch (error) {
-    console.error('Error initializing the LLM:', error);
+    console.error('Error initializing LLM:', error);
   }
 }
 
-// Function to clear existing files in the data directory
+// Clear data directory
 async function clearDataDirectory() {
   try {
     const files = await fs.readdir(DATA_DIR);
@@ -84,9 +92,9 @@ async function clearDataDirectory() {
   }
 }
 
-// No Rate Limiting Middleware
+// Rate Limiting Middleware (No Limits)
 function rateLimiter(req, res, next) {
-  next(); // Allow all requests without restriction
+  next();
 }
 
 // Set up Multer for file uploads
@@ -97,7 +105,6 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => cb(null, `${file.originalname}`),
 });
-
 const upload = multer({ storage });
 
 // Routes
@@ -115,7 +122,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     console.log(`File uploaded: ${req.file.filename}`);
     console.log('Reinitializing LLM with the uploaded document...');
 
-    // Reinitialize the LLM with the uploaded file
+    // Reinitialize LLM
     await initializeLLM();
 
     res.status(200).json({
@@ -133,6 +140,13 @@ app.post('/', rateLimiter, async (req, res) => {
   try {
     const prompt = req.body.prompt;
 
+    if (!agentExecutor) {
+      console.error('Agent executor is not initialized.');
+      return res.status(500).json({ error: 'LLM is not initialized. Upload a document first.' });
+    }
+
+    console.log('User prompt:', prompt);
+
     let finalContent;
     for await (const response of await agentExecutor.stream(
       { messages: [new HumanMessage(prompt)] },
@@ -144,6 +158,7 @@ app.post('/', rateLimiter, async (req, res) => {
       }
     }
 
+    console.log('LLM response:', finalContent);
     res.status(200).send({ bot: finalContent || 'No response from the agent.' });
   } catch (error) {
     console.error('Error handling user prompt:', error);
@@ -151,10 +166,10 @@ app.post('/', rateLimiter, async (req, res) => {
   }
 });
 
-// Start the server and initialize vector store
+// Start the server and initialize LLM
 const PORT = process.env.PORT || 8889;
 app.listen(PORT, async () => {
   console.log(`Server is running on http://localhost:${PORT}`);
   await clearDataDirectory(); // Ensure the data directory starts empty
-  await initializeLLM(); // Load vector store and reinitialize LLM on startup
+  await initializeLLM(); // Load vector store and LLM on startup
 });
