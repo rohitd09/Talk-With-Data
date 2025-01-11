@@ -1,23 +1,32 @@
-const bot = './assets/bot.svg';
-const user = './assets/user.svg';
-
 const form = document.querySelector('form');
 const chatMessages = document.querySelector('#chat_messages');
 const documentView = document.querySelector('#document_view');
 const fileInput = document.querySelector('#file_input');
 
-let loadInterval;
+let transcriptName = null; // Store the current transcript name
 
+// Append chat messages to the chat container
+function appendMessage(role, message) {
+  const bubble = document.createElement('div');
+  bubble.className = `chat-bubble ${role}`;
+  bubble.textContent = message;
+  chatMessages.appendChild(bubble);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Show a typing loader for bot responses
 function loader(element) {
   element.textContent = '';
-  loadInterval = setInterval(() => {
+  const loadInterval = setInterval(() => {
     element.textContent += '.';
     if (element.textContent === '....') {
       element.textContent = '';
     }
   }, 300);
+  return loadInterval;
 }
 
+// Simulate typewriter effect for bot messages
 function typeText(element, text) {
   let index = 0;
   const interval = setInterval(() => {
@@ -30,47 +39,48 @@ function typeText(element, text) {
   }, 50);
 }
 
-function appendMessage(role, message) {
-  const bubble = document.createElement('div');
-  bubble.className = `chat-bubble ${role}`;
-  bubble.textContent = message;
-  chatMessages.appendChild(bubble);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
+// Handle file uploads using S3 presigned URL
 async function handleFileUpload(event) {
   const file = event.target.files[0];
   if (file) {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    documentView.textContent = 'Uploading document...';
     try {
-      const response = await fetch('http://localhost:8889/upload', {
+      documentView.textContent = 'Uploading document...';
+
+      // Step 1: Get the presigned URL and transcript name from the server
+      const response = await fetch('http://localhost:8889/upload-url', {
         method: 'POST',
-        body: formData,
+      });
+      if (!response.ok) throw new Error('Failed to get upload URL.');
+
+      const { uploadURL, transcriptName: name } = await response.json();
+      transcriptName = name; // Save the transcript name
+
+      // Step 2: Upload the file to S3 using the presigned URL
+      const s3Response = await fetch(uploadURL, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        const reader = new FileReader();
+      if (!s3Response.ok) throw new Error('Failed to upload file to S3.');
 
-        reader.onload = function (e) {
-          documentView.textContent = e.target.result;
-        };
-        reader.readAsText(file);
+      // Step 3: Display the uploaded file content in the document view
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        documentView.textContent = e.target.result;
+      };
+      reader.readAsText(file);
 
-        appendMessage('bot', `Document "${result.filename}" uploaded successfully. You can now ask questions about it!`);
-      } else {
-        documentView.textContent = 'Error uploading the document. Try again.';
-      }
+      appendMessage('bot', `File "${file.name}" uploaded successfully and linked to the RAG model!`);
     } catch (error) {
       console.error('File upload failed:', error);
-      documentView.textContent = 'Network error: Unable to upload document.';
+      appendMessage('bot', 'Error: Unable to upload the file.');
+      documentView.textContent = 'Error uploading document. Please try again.';
     }
   }
 }
 
+// Handle user chat submissions
 async function handleSubmit(event) {
   event.preventDefault();
 
@@ -85,7 +95,7 @@ async function handleSubmit(event) {
   const bubble = document.createElement('div');
   bubble.className = 'chat-bubble bot';
   chatMessages.appendChild(bubble);
-  loader(bubble);
+  const loadInterval = loader(bubble);
 
   try {
     const response = await fetch('http://localhost:8889/', {

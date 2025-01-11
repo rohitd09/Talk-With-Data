@@ -8,10 +8,13 @@
     "server": "nodemon server"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.723.0",
+    "@aws-sdk/s3-request-presigner": "^3.723.0",
     "@langchain/community": "^0.3.17",
     "@langchain/core": "^0.3.22",
     "@langchain/langgraph": "^0.2.26",
     "@langchain/openai": "^0.3.14",
+    "aws-sdk": "^2.1692.0",
     "cheerio": "^1.0.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.1",
@@ -21,6 +24,7 @@
     "openai": "^4.75.0",
     "path": "^0.12.7",
     "pdf-parse": "^1.1.1",
+    "stream-to-string": "^1.2.1",
     "uuid": "^11.0.3"
   },
   "devDependencies": {
