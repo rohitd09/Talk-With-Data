@@ -13,7 +13,6 @@ import { S3Loader } from "@langchain/community/document_loaders/web/s3";
 import { generateUploadURL } from './s3.js';
 import { MemorySaver } from '@langchain/langgraph';
 import { HumanMessage } from '@langchain/core/messages';
-import { log } from 'console';
 
 // // Set up __dirname for ES Modules
 // const __filename = fileURLToPath(import.meta.url);
