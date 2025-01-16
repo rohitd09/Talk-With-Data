@@ -25,9 +25,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Directory Paths
-const DATA_DIR = path.join(process.env.STORAGE_PATH, 'data');
-
 // Initialize Variables
 let vectorStore;
 let retriever;

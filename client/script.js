@@ -47,7 +47,7 @@ async function handleFileUpload(event) {
       documentView.textContent = 'Uploading document...';
 
       // Step 1: Get the presigned URL and transcript name from the server
-      const response = await fetch('http://localhost:8889/upload-url', {
+      const response = await fetch('https://talk-with-data.vercel.app/upload-url', {
         method: 'POST',
       });
       if (!response.ok) throw new Error('Failed to get upload URL.');
@@ -98,7 +98,7 @@ async function handleSubmit(event) {
   const loadInterval = loader(bubble);
 
   try {
-    const response = await fetch('http://localhost:8889/', {
+    const response = await fetch('https://talk-with-data.vercel.app/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt: userMessage }),
