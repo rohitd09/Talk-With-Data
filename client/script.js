@@ -65,7 +65,7 @@ async function handleFileUpload(event) {
       if (!s3Response.ok) throw new Error('Failed to upload file to S3.');
 
       // Step 3: Initialize LLM with the uploaded file
-      const initResponse = await fetch('http://localhost:8889/initialize-llm', {
+      const initResponse = await fetch('https://talk-with-data.vercel.app/initialize-llm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transcriptName }),
