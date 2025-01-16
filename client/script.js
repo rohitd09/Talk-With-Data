@@ -64,7 +64,16 @@ async function handleFileUpload(event) {
 
       if (!s3Response.ok) throw new Error('Failed to upload file to S3.');
 
-      // Step 3: Display the uploaded file content in the document view
+      // Step 3: Initialize LLM with the uploaded file
+      const initResponse = await fetch('http://localhost:8889/initialize-llm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcriptName }),
+      });
+
+      if (!initResponse.ok) throw new Error('Failed to initialize LLM.');
+
+      // Step 4: Display the uploaded file content in the document view
       const reader = new FileReader();
       reader.onload = function (e) {
         documentView.textContent = e.target.result;

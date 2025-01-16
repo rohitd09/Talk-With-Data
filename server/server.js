@@ -13,6 +13,7 @@ import { S3Loader } from "@langchain/community/document_loaders/web/s3";
 import { generateUploadURL } from './s3.js';
 import { MemorySaver } from '@langchain/langgraph';
 import { HumanMessage } from '@langchain/core/messages';
+import { log } from 'console';
 
 // // Set up __dirname for ES Modules
 // const __filename = fileURLToPath(import.meta.url);
@@ -31,14 +32,14 @@ let retriever;
 let agentExecutor;
 const memory = new MemorySaver(); // Persistent memory
 
-async function initializeLLM() {
+async function initializeLLM(bucket_key) {
   try {
     console.log('Initializing LLM with current documents...');
 
     // Load documents
     const loader = new S3Loader({
       bucket: process.env.AWS_BUCKET_NAME,
-      key: "958e5397186c33e0ffce2beef4c01079.txt",
+      key: bucket_key,
       s3Config: {
         region: process.env.AWS_REGION,
         credentials: {
@@ -94,11 +95,26 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => cb(null, `${file.originalname}`),
 });
-const upload = multer({ storage });
 
 // Routes
 app.get('/', (req, res) => {
   res.send({ message: 'Talk With Data Server is Running!' });
+});
+
+app.post('/initialize-llm', async (req, res) => {
+  try {
+    const { transcriptName } = req.body;
+    if (!transcriptName) {
+      return res.status(400).json({ error: 'Transcript name is required.' });
+    }
+
+    // Call the initializeLLM function with the transcript name
+    await initializeLLM(transcriptName);
+    res.status(200).json({ message: 'LLM initialized successfully.' });
+  } catch (error) {
+    console.error('Error initializing LLM:', error);
+    res.status(500).json({ error: 'Failed to initialize LLM.' });
+  }
 });
 
 // Route to generate presigned upload URL
@@ -106,7 +122,6 @@ app.post('/upload-url', async (req, res) => {
   try {
     // Generate the presigned URL and transcript name
     const { uploadURL, transcriptName } = await generateUploadURL();
-
     // Send the presigned URL and transcript name to the client
     res.status(200).json({ uploadURL, transcriptName });
   } catch (error) {
@@ -119,7 +134,7 @@ app.post('/upload-url', async (req, res) => {
 app.post('/', rateLimiter, async (req, res) => {
   try {
     const prompt = req.body.prompt;
-
+    
     if (!agentExecutor) {
       console.error('Agent executor is not initialized.');
       return res.status(500).json({ error: 'LLM is not initialized. Upload a document first.' });
@@ -147,5 +162,4 @@ app.post('/', rateLimiter, async (req, res) => {
 const PORT = process.env.PORT || 8889;
 app.listen(PORT, async () => {
   console.log(`Server is running on http://localhost:${PORT}`);
-  await initializeLLM(); // Load vector store and LLM on startup
 });
